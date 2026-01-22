@@ -1,111 +1,129 @@
-Content-Type Converter
-=========
+# Content-Type Converter
 
-Burp extension to convert XML to JSON, JSON to XML, x-www-form-urlencoded to XML, and x-www-form-urlencoded to JSON.
+Burp Suite extension to convert request bodies between different content types: JSON, XML, URL-encoded, and multipart form data.
 
-Requirements: Java 8 (Due to issues with one of the libraries it only works on Java 8. I have not had any problems with Burp using Java 8.)
+## Requirements
 
-Right-click on a request in an editable message window such as Repeater, Intruder, and the Proxy interceptor
+- Java 21+
+- Burp Suite
 
-The following convertions are supported:
+## Usage
 
-* XML to JSON
-* JSON to XML
-* Body Parameter to XML
-* Body Parameter to JSON
-* GET Request Parameter to POST Request XML
-* GET Request Parameter to POST Request JSON
+Right-click on a request in an editable message window (Repeater, Intruder, Proxy interceptor) and select one of the conversion options.
 
-![alt tag](https://blog.netspi.com/wp-content/uploads/2015/06/1433537211-4d9354b031b81daa10a7247d882d20da.jpg)
+## Supported Conversions
 
-###Body Parameter###
+| From | To |
+|------|-----|
+| URL-encoded | JSON, XML, Multipart |
+| JSON | XML, URL-encoded, Multipart |
+| XML | JSON, URL-encoded, Multipart |
+| Multipart | JSON, XML, URL-encoded |
 
+GET requests are automatically converted to POST when converting.
+
+## Examples
+
+### URL-Encoded to JSON
+
+**Before:**
 ```
 POST /test HTTP/1.1
 Host: www.example.com
-Proxy-Connection: keep-alive
-Content-Length: 32
+Content-Type: application/x-www-form-urlencoded
 
-parameter1=1&parameters2="test"
-
+username=admin&password=secret
 ```
 
-#####To XML#####
+**After:**
 ```
 POST /test HTTP/1.1
 Host: www.example.com
-Proxy-Connection: keep-alive
-Content-Length: 136
-Content-Type: application/xml;charset=UTF-8
-
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<root>
-<parameters2>"test"</parameters2>
-<parameter1>1</parameter1>
-</root>
-```
-#####To JSON#####
-```
-POST /test HTTP/1.1
-Host: www.example.com
-Proxy-Connection: keep-alive
-Content-Length: 43
 Content-Type: application/json;charset=UTF-8
 
-{"parameter1":"1","parameters2":"\"test\""}
+{"username":"admin","password":"secret"}
 ```
 
-###JSON to XML###
+### JSON to XML
 
+**Before:**
 ```
 POST /test HTTP/1.1
 Host: www.example.com
-Proxy-Connection: keep-alive
-Content-Length: 43
-Content-Type: application/json;charset=UTF-8
+Content-Type: application/json
 
-{"parameter1":"1","parameters2":"\"test\""}
+{"username":"admin","password":"secret"}
 ```
-#####To XML#####
+
+**After:**
 ```
 POST /test HTTP/1.1
 Host: www.example.com
-Proxy-Connection: keep-alive
-Content-Length: 136
 Content-Type: application/xml;charset=UTF-8
 
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <root>
-<parameters2>"test"</parameters2>
-<parameter1>1</parameter1>
+  <username>admin</username>
+  <password>secret</password>
 </root>
 ```
 
-###XML to JSON###
+### JSON to Multipart Form
 
+**Before:**
 ```
 POST /test HTTP/1.1
 Host: www.example.com
-Proxy-Connection: keep-alive
-Content-Length: 136
-Content-Type: application/xml;charset=UTF-8
+Content-Type: application/json
 
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+{"username":"admin","password":"secret"}
+```
+
+**After:**
+```
+POST /test HTTP/1.1
+Host: www.example.com
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryabc123
+
+------WebKitFormBoundaryabc123
+Content-Disposition: form-data; name="username"
+
+admin
+------WebKitFormBoundaryabc123
+Content-Disposition: form-data; name="password"
+
+secret
+------WebKitFormBoundaryabc123--
+```
+
+### XML to URL-Encoded
+
+**Before:**
+```
+POST /test HTTP/1.1
+Host: www.example.com
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
 <root>
-<parameters2>"test"</parameters2>
-<parameter1>1</parameter1>
+  <username>admin</username>
+  <password>secret</password>
 </root>
 ```
-#####To JSON#####
-```
-POST /text HTTP/1.1
-Host: www.example.com
-Proxy-Connection: keep-alive
-Content-Length: 60
-Content-Type: application/json;charset=UTF-8
 
-{"root": {
-  "parameters2": "\"test\"",
-  "parameter1": 1
-}}
+**After:**
 ```
+POST /test HTTP/1.1
+Host: www.example.com
+Content-Type: application/x-www-form-urlencoded;charset=UTF-8
+
+username=admin&password=secret
+```
+
+## Building
+
+```bash
+./gradlew build
+```
+
+The JAR will be created at `build/libs/content-type-converter.jar`.

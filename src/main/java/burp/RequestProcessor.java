@@ -1,12 +1,15 @@
 package burp;
 
 import java.util.List;
+import java.util.UUID;
 
 import static burp.Utilities.extractBodyFromRequest;
 import static burp.Utilities.getAppropriateRequest;
 
 public class RequestProcessor
 {
+    private static final String BOUNDARY_PLACEHOLDER = "${BOUNDARY}";
+
     private final IExtensionHelpers helpers;
     private final BodyProcessor bodyProcessor;
     private final String contentTypeHeaderValue;
@@ -29,9 +32,18 @@ public class RequestProcessor
 
         String processedBody = bodyProcessor.process(contentType, body);
 
-        List<String> headers = helpers.analyzeRequest(request).getHeaders();
-        headers.removeIf(s -> s.contains("Content-Type"));
-        headers.add("Content-Type: " + contentTypeHeaderValue);
+        String finalContentType = contentTypeHeaderValue;
+
+        if (contentTypeHeaderValue.contains(BOUNDARY_PLACEHOLDER))
+        {
+            String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+            finalContentType = contentTypeHeaderValue.replace(BOUNDARY_PLACEHOLDER, boundary);
+            processedBody = processedBody.replace(BOUNDARY_PLACEHOLDER, boundary);
+        }
+
+        List<String> headers = requestInfo.getHeaders();
+        headers.removeIf(s -> s.toLowerCase().startsWith("content-type"));
+        headers.add("Content-Type: " + finalContentType);
 
         return helpers.buildHttpMessage(headers, processedBody.getBytes());
     }
